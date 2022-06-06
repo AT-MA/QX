@@ -8,7 +8,7 @@ hostname = api.weibo.cn, mapi.weibo.com, *.uve.weibo.com, mp.weixin.qq.com, api.
 ^https?://api.bjxkhc.com/index.php/app/ios/ver/index_ios$ url reject
 ^https?://api.bjxkhc.com/index.php/app/ios/pay/ok$ url reject-dict
 
-# 醒图|轻颜相机（need登录）
+# 醒图|轻颜相机（need登录）@ddgksf2013
 https://(commerce-.*api|pay).(faceu|wecut).(com|mobi)/(commerce|apple)/(iosAppVerifyReceipt.php|v1/subscription/user_info) url script-response-body https://github.com/ddgksf2013/Cuttlefish/raw/master/Crack/commerce.js
 
 # 知音漫客VIP
