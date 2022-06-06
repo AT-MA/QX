@@ -1,4 +1,4 @@
-hostname = api.weibo.cn, mapi.weibo.com, *.uve.weibo.com, mp.weixin.qq.com, api.zhihu.com, vsco.co, apigate.zymk.cn, account.wps.cn, api.bjxkhc.com,  ap*.intsig.net, api.vuevideo.net, api.picsart.c*, api.meiease.c*, api.revenuecat.com, pan.baidu.com, api.xiuxiu.meitu.com, restore-access.indream.app, h5.xiuxiu.meitu.com, spclient.wg.spotify.com, commerce-i18n-api.faceu.mobi, commerce-api.faceu.mobi
+hostname = mp.weixin.qq.com, api.zhihu.com, vsco.co, apigate.zymk.cn, account.wps.cn, api.bjxkhc.com,  ap*.intsig.net, api.vuevideo.net, api.picsart.c*, api.meiease.c*, api.revenuecat.com, pan.baidu.com, api.xiuxiu.meitu.com, restore-access.indream.app, h5.xiuxiu.meitu.com, spclient.wg.spotify.com, commerce-i18n-api.faceu.mobi, commerce-api.faceu.mobi
 
 # 去微信公众号广告 (By Choler)
 ^https?:\/\/mp\.weixin\.qq\.com\/mp\/getappmsgad url script-response-body https://raw.githubusercontent.com/NobyDa/Script/master/QuantumultX/File/Wechat.js
