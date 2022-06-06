@@ -8,7 +8,7 @@ hostname = api.weibo.cn, mapi.weibo.com, *.uve.weibo.com, mp.weixin.qq.com, api.
 ^https?://api.bjxkhc.com/index.php/app/ios/ver/index_ios$ url reject
 ^https?://api.bjxkhc.com/index.php/app/ios/pay/ok$ url reject-dict
 
-# ✅ 醒图|轻颜相机（need登录）
+# 醒图|轻颜相机（need登录）
 https://(commerce-.*api|pay).(faceu|wecut).(com|mobi)/(commerce|apple)/(iosAppVerifyReceipt.php|v1/subscription/user_info) url script-response-body https://github.com/ddgksf2013/Cuttlefish/raw/master/Crack/commerce.js
 
 # 知音漫客VIP
@@ -29,11 +29,11 @@ https://(commerce-.*api|pay).(faceu|wecut).(com|mobi)/(commerce|apple)/(iosAppVe
 # 百度网盘 解除在线视频倍率/清晰度
 ^https:\/\/pan\.baidu\.com\/rest\/\d\.\d\/membership\/user url script-response-body https://raw.githubusercontent.com/NobyDa/Script/master/Surge/JS/BaiduCloud.js
 
-#美图秀秀 
+# 美图秀秀 
 ^https?://(api|h5).xiuxiu.meitu.com/(v1/user/show.json|v1/vip/vip_show.json|v1/vip/prompt/query.json|v1/h5/vip/sub_detail.json|v1/h5/user/self_show.json|v1/h5/vip/user_detail.json|v1/vip/prompt/query.json|v1/vip/prompt/query.json) url script-response-body https://raw.githubusercontent.com/githubdulong/Script/master/Mtxx.js
 
-#Spotify
+# Spotify
 ^https:\/\/spclient\.wg\.spotify\.com\/(bootstrap\/v1\/bootstrap|user-customization-service\/v1\/customize)$ url script-response-body https://raw.githubusercontent.com/app2smile/rules/master/js/spotify-proto.js
 
-#Nicegram解鎖會員權限（2022-04-10）@ddgksf2013
+# Nicegram解鎖會員權限（2022-04-10）@ddgksf2013
 https?:\/\/restore-access\.indream\.app\/restoreAccess\?id=\d{5,10} url echo-response text/json echo-response https://github.com/ddgksf2013/Cuttlefish/raw/master/Crack/nicegram_body.js
