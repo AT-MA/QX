@@ -1,4 +1,4 @@
-hostname = api.weibo.cn, mapi.weibo.com, *.uve.weibo.com, mp.weixin.qq.com, api.zhihu.com, vip1.kuwo.cn, p.du.163.com, vsco.co, apigate.zymk.cn, vni.kwaiying.com, *.my10api.com, www.luqijianggushi.com, account.wps.cn, origin-prod-phoenix.jibjab.com, api.bjxkhc.com, xy-viva.kakalili.com, ap*.intsig.net, m*.bybutter.com, api.vuevideo.net, api.picsart.c*, ios.fuliapps.com, apple.fuliapps.com, *.pipiapps.com, ios.xiangjiaoapps.com, apple.xiangjiaoapps.com, *.xiangxiangapps.com, api.meiease.c*, api.m.jd.com, ios*.prod.ftl.netflix.com, api.revenuecat.com, pan.baidu.com, api.xiuxiu.meitu.com, restore-access.indream.app, h5.xiuxiu.meitu.com, spclient.wg.spotify.com, commerce-i18n-api.faceu.mobi, commerce-api.faceu.mobi
+hostname = api.weibo.cn, mapi.weibo.com, *.uve.weibo.com, mp.weixin.qq.com, api.zhihu.com, vsco.co, apigate.zymk.cn, account.wps.cn, api.bjxkhc.com,  ap*.intsig.net, api.vuevideo.net, api.picsart.c*, api.meiease.c*, api.revenuecat.com, pan.baidu.com, api.xiuxiu.meitu.com, restore-access.indream.app, h5.xiuxiu.meitu.com, spclient.wg.spotify.com, commerce-i18n-api.faceu.mobi, commerce-api.faceu.mobi
 
 # 去微信公众号广告 (By Choler)
 ^https?:\/\/mp\.weixin\.qq\.com\/mp\/getappmsgad url script-response-body https://raw.githubusercontent.com/NobyDa/Script/master/QuantumultX/File/Wechat.js
@@ -37,3 +37,6 @@ https://(commerce-.*api|pay).(faceu|wecut).(com|mobi)/(commerce|apple)/(iosAppVe
 
 # Nicegram解鎖會員權限（2022-04-10）@ddgksf2013
 https?:\/\/restore-access\.indream\.app\/restoreAccess\?id=\d{5,10} url echo-response text/json echo-response https://github.com/ddgksf2013/Cuttlefish/raw/master/Crack/nicegram_body.js
+
+# Picsart
+^https?:\/\/api\.meiease\.cn\/shop\/subscription\/validate url script-response-body https://raw.githubusercontent.com/ddgksf2013/Cuttlefish/master/Crack/picsart.js
