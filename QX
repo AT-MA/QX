@@ -1,15 +1,11 @@
 hostname = mp.weixin.qq.com, api.zhihu.com, vsco.co, apigate.zymk.cn, account.wps.cn, api.bjxkhc.com,  ap*.intsig.net, api.vuevideo.net, api.picsart.c*, api.meiease.c*, api.revenuecat.com, pan.baidu.com, api.xiuxiu.meitu.com, restore-access.indream.app, h5.xiuxiu.meitu.com, spclient.wg.spotify.com, commerce-i18n-api.faceu.mobi, commerce-api.faceu.mobi
 
-# 去微信公众号广告 (By Choler)
-^https?:\/\/mp\.weixin\.qq\.com\/mp\/getappmsgad url script-response-body https://raw.githubusercontent.com/NobyDa/Script/master/QuantumultX/File/Wechat.js
 
 # 广告
 ^https?://api.bjxkhc.com/index.php/app/ios/ads/index url reject-dict
 ^https?://api.bjxkhc.com/index.php/app/ios/ver/index_ios$ url reject
 ^https?://api.bjxkhc.com/index.php/app/ios/pay/ok$ url reject-dict
 
-# 醒图|轻颜相机（need登录）@ddgksf2013
-https://(commerce-.*api|pay).(faceu|wecut).(com|mobi)/(commerce|apple)/(iosAppVerifyReceipt.php|v1/subscription/user_info) url script-response-body https://github.com/ddgksf2013/Cuttlefish/raw/master/Crack/commerce.js
 
 # 知音漫客VIP
 ^https:\/\/apigate\.zymk\.cn\/(zymk-getuserinfo-api\/v1\/getuserinfo|zymk-userpurchased-api\/v1\/userpurchased\/paychapters)\/ url script-response-body https://raw.githubusercontent.com/NobyDa/Script/master/QuantumultX/File/Zymh.js
@@ -31,6 +27,3 @@ https://(commerce-.*api|pay).(faceu|wecut).(com|mobi)/(commerce|apple)/(iosAppVe
 
 # Nicegram解鎖會員權限（2022-04-10）@ddgksf2013
 https?:\/\/restore-access\.indream\.app\/restoreAccess\?id=\d{5,10} url echo-response text/json echo-response https://gitlab.com/ddgksf2013/Cuttlefish/-/raw/master/Crack/nicegram_body.js
-
-# Picsart
-^https?:\/\/api\.meiease\.cn\/shop\/subscription\/validate url script-response-body https://raw.githubusercontent.com/ddgksf2013/Cuttlefish/master/Crack/picsart.js
