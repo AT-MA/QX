@@ -22,15 +22,4 @@ hostname = mp.weixin.qq.com, api.zhihu.com, vsco.co, apigate.zymk.cn, account.wp
 ^https:\/\/pan\.baidu\.com\/rest\/\d\.\d\/membership\/user url script-response-body https://raw.githubusercontent.com/NobyDa/Script/master/Surge/JS/BaiduCloud.js
 
 # 美图秀秀 
-^https?://(api|h5).xiuxiu.meitu.com/(v1/user/show.json|v1/vip/vip_show.json|v1/vip/prompt/query.json|v1/h5/vip/sub_detail.json|v1/h5/user/self_show.json|v1/h5/vip/user_detail.json|v1/vip/prompt/query.json|v1/vip/prompt/query.json) url script-response-body https://raw.githubusercontent.com/githubdulong/Script/master/Mtxx.js
-
-
-# > 哔哩哔哩
-# > 哔哩哔哩_繁体CC字幕转中文简体
-^https?:\/\/i.\.hdslb\.com\/bfs\/subtitle\/.+\.json$ url script-response-body https://raw.githubusercontent.com/28413761/QX/main/jiaoben/bilibili_cc.js
-# > 哔哩哔哩_观影页面广告
-^https?:\/\/api\.bilibili\.com\/pgc\/page\/cinema\/tab\? url script-response-body https://raw.githubusercontent.com/28413761/QX/main/jiaoben/bilibili_diy.js
-# > 哔哩哔哩_开屏广告
-^https://app.bilibili.com/x/v2/splash/show url reject-dict
-# > 哔哩哔哩_开屏广告预加载
-^https:\/\/app\.bilibili\.com\/x\/v2\/splash\/list url script-response-body https://raw.githubusercontent.com/28413761/QX/main/jiaoben/bilibili_diy.js
+^https?://(api|h5).xiuxiu.meitu.com/(v1/user/show.json|v1/vip/vip_show.json|v1/vip/prompt/query.json|v1/h5/vip/sub_detail.json|v1/h5/user/self_show.json|v1/h5/vip/user_detail.json|v1/vip/prompt/query.json|v1/vip/prompt/query.json) url script-response-body https://raw.githubusercontent.com/githubdulong/Script/master/
