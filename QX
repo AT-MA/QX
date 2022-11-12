@@ -1,5 +1,4 @@
-hostname = mp.weixin.qq.com, api.zhihu.com, vsco.co, apigate.zymk.cn, account.wps.cn, api.bjxkhc.com,  ap*.intsig.net, api.vuevideo.net, api.picsart.c*, api.meiease.c*, api.revenuecat.com, pan.baidu.com, api.xiuxiu.meitu.com, restore-access.indream.app, h5.xiuxiu.meitu.com, spclient.wg.spotify.com, commerce-i18n-api.faceu.mobi, commerce-api.faceu.mobi
-hostname = *.pic1cdn.cmbchina.com, *.resource.cmbchina.com,*.interface*.music.163.com, *.support.you.163.com, *.p.du.163.com,*.app.bilibili.com, *.manga.bilibili.com, *.app.biliintl.com, *.api.bilibili.com,*.grpc.biliapi.net, *.bilibili.com, *.api.live.bilibili.com, *.api.vc.bilibili.com, *.open.e.kuaishou.com, *.api.rr.tv, *.m.360buyimg.com, *.support.you.163.com,*.gw.alicdn.com, heic.alicdn.com,*.img.alicdn.com, ossgw.alicdn.com,*.www.cntv.com,*.flowplus.meituan.net,*.wmapi.meituan.com,*.api.xiachufang.com,*.account.wps.cn
+hostname = mp.weixin.qq.com, api.zhihu.com, vsco.co, apigate.zymk.cn, account.wps.cn, api.bjxkhc.com,  ap*.intsig.net, api.vuevideo.net, api.picsart.c*, api.meiease.c*, api.revenuecat.com, pan.baidu.com, api.xiuxiu.meitu.com, restore-access.indream.app, h5.xiuxiu.meitu.com, spclient.wg.spotify.com, commerce-i18n-api.faceu.mobi, commerce-api.faceu.mobi, *.pic1cdn.cmbchina.com, *.resource.cmbchina.com,*.interface*.music.163.com, *.support.you.163.com, *.p.du.163.com,*.app.bilibili.com, *.manga.bilibili.com, *.app.biliintl.com, *.api.bilibili.com,*.grpc.biliapi.net, *.bilibili.com, *.api.live.bilibili.com, *.api.vc.bilibili.com, *.open.e.kuaishou.com, *.api.rr.tv, *.m.360buyimg.com, *.support.you.163.com,*.gw.alicdn.com, heic.alicdn.com,*.img.alicdn.com, ossgw.alicdn.com,*.www.cntv.com,*.flowplus.meituan.net,*.wmapi.meituan.com,*.api.xiachufang.com,*.account.wps.cn
 
 # 广告
 ^https?://api.bjxkhc.com/index.php/app/ios/ads/index url reject-dict
@@ -25,8 +24,6 @@ hostname = *.pic1cdn.cmbchina.com, *.resource.cmbchina.com,*.interface*.music.16
 # 美图秀秀 
 ^https?://(api|h5).xiuxiu.meitu.com/(v1/user/show.json|v1/vip/vip_show.json|v1/vip/prompt/query.json|v1/h5/vip/sub_detail.json|v1/h5/user/self_show.json|v1/h5/vip/user_detail.json|v1/vip/prompt/query.json|v1/vip/prompt/query.json) url script-response-body https://raw.githubusercontent.com/githubdulong/Script/master/Mtxx.js
 
-# Nicegram解鎖會員權限（2022-04-10）@ddgksf2013
-https?:\/\/restore-access\.indream\.app\/restoreAccess\?id=\d{5,10} url echo-response text/json echo-response https://gitlab.com/ddgksf2013/Cuttlefish/-/raw/master/Crack/nicegram_body.js
 
 # > 哔哩哔哩
 # > 哔哩哔哩_繁体CC字幕转中文简体
