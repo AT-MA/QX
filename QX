@@ -14,5 +14,3 @@ hostname = mp.weixin.qq.com, api.zhihu.com, vsco.co, apigate.zymk.cn, account.wp
 
 # VUE pro
 ^https:\/\/api\.vuevideo\.net\/api\/v1\/(users\/.+\/profile|subtitle\/prepare) url script-response-body https://raw.githubusercontent.com/NobyDa/Script/master/Surge/JS/VUE.js
-
-
