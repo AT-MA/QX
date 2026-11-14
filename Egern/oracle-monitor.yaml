@@ -1,0 +1,11 @@
+name: 甲骨文 VPS 监控
+description: 通过 SSH 读取 VPS 监控数据的小组件。请在模块编辑页的 Env 里填写 HOST，以及 SSH_KEY 或 SSH_PASSWORD（可选 SSH_USER、SSH_PORT、TITLE、MONTHLY_TB、REFRESH）
+
+scriptings:
+- generic:
+    name: oracle-vps-monitor
+    script_url: https://raw.githubusercontent.com/AT-MA/QX/main/Egern/oracle-monitor.js
+    timeout: 30
+
+widgets:
+- name: oracle-vps-monitor
