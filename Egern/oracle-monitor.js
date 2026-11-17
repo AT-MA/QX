@@ -513,7 +513,7 @@ export default async function (ctx) {
       }
       return widget([
         header(title, right, rightColor),
-        COL(ipItems(ipRowsFor(large ? 8 : 4), true), large ? 8 : 5),
+        COL(ipItems(ipRowsFor(large ? 10 : 4), true), large ? 6 : 5),
         SP()
       ]);
     }
@@ -532,21 +532,54 @@ export default async function (ctx) {
       ]);
     }
 
+    // 中、大尺寸共用的上半部分：左 节点+系统，右 本月出站+今日
+    const nodeCompact = S("节点", [
+      R("VLESS", vless ? `正常 · ${vlessTime}` : "异常", vless ? C.green : C.red),
+      R("HY2", hy2ok ? `正常 · ${hy2Time}` : "异常", hy2ok ? C.green : C.red),
+      R("CPU / 内存", `${Number.isFinite(cpu) ? cpu.toFixed(1) : "--"}% · ${pctText(ram.percent)}`),
+      R("出口延迟", latency)
+    ]);
+
+    const quotaCompact = S("本月出站", [
+      ROW([
+        T(shortBytes(monthTx), "subheadline", C.white, "bold"),
+        SP(),
+        T(`${usedPercent.toFixed(1)}% / ${shortBytes(MONTHLY_LIMIT)}`, "caption2", C.gray)
+      ]),
+      BAR(usedPercent, quotaColor),
+      R("剩余", shortBytes(remaining), quotaColor),
+      R("今日", `↑${shortBytes(todayTx)} ↓${shortBytes(todayRx)}`)
+    ]);
+
+    const top = TWO(nodeCompact, quotaCompact);
+
+    // 大尺寸：下半部分全部给在线 IP
     if (large) {
       return widget([
         header(TITLE, statusText, statusColor),
-        TWO(systemBlock, nodeBlock),
-        TWO(todayBlock, quotaBlock),
-        ipBlock(ipRowsFor(3), true),
+        top,
+        ipBlock(ipRowsFor(Math.max(3, 6 - warns.length)), true),
         SP(),
         footer
       ]);
     }
 
-    // 中尺寸：放不下全部，只放最常看的
+    // 中尺寸：底部一行在线 IP 摘要
+    const first = knownIps[0];
+    const onlineLine = ROW([
+      T("在线 IP", "caption1", C.gray),
+      SP(6),
+      T(ipCount, "caption1", warns.length ? C.orange : C.white, "semibold"),
+      SP(),
+      warns.length
+        ? T("⚠ 可能被分享", "caption2", C.orange, "semibold")
+        : T(first ? `${first.ip} · ${first.geo_short || "未知"}` : (o ? "无在线用户" : "读取失败"), "caption2", C.gray)
+    ]);
+
     return widget([
       header(TITLE, statusText, statusColor),
-      TWO(nodeBlock, quotaBlock)
+      top,
+      onlineLine
     ]);
 
   } catch (e) {
