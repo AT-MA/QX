@@ -108,9 +108,9 @@ export default async function (ctx) {
   });
 
   // 一行：左标签 + 右数值
+  // 横向撑满用 flex 文本，不用 spacer（spacer 会把多余的竖向空间也吃掉，行距被拉大）
   const R = (label, value, color = C.white) => ROW([
-    T(label, "caption1", C.gray),
-    SP(),
+    T(label, "caption1", C.gray, "medium", { flex: 1 }),
     T(value, "caption1", color, "semibold")
   ]);
 
@@ -157,8 +157,7 @@ export default async function (ctx) {
   });
 
   const header = (title, right, rightColor = C.gray) => ROW([
-    T(title, "headline", C.white, "bold"),
-    SP(),
+    T(title, "headline", C.white, "bold", { flex: 1 }),
     T(right, "caption1", rightColor, "bold")
   ]);
 
@@ -384,8 +383,7 @@ export default async function (ctx) {
 
     const quotaBlock = S("本月出站", [
       ROW([
-        T(shortBytes(monthTx), "subheadline", C.white, "bold"),
-        SP(),
+        T(shortBytes(monthTx), "subheadline", C.white, "bold", { flex: 1 }),
         T(`${usedPercent.toFixed(1)}% / ${shortBytes(MONTHLY_LIMIT)}`, "caption2", C.gray)
       ]),
       BAR(usedPercent, quotaColor),
@@ -405,16 +403,13 @@ export default async function (ctx) {
     // 在线 IP 行：wide=一行显示，否则两行
     const ipRow = (x, wide) => wide
       ? ROW([
-          T(x.ip, "caption1", C.white, "semibold"),
-          SP(),
+          T(x.ip, "caption1", C.white, "semibold", { flex: 1 }),
           T(x.label || "", "caption2", C.blue, "semibold"),
-          SP(8),
           T(x.geo_short || "未知", "caption2", C.gray)
-        ])
+        ], { gap: 8 })
       : COL([
           ROW([
-            T(x.ip, "caption1", C.white, "semibold"),
-            SP(),
+            T(x.ip, "caption1", C.white, "semibold", { flex: 1 }),
             T(x.geo_short || "未知", "caption2", C.gray)
           ]),
           T(x.label || "", "caption2", C.blue, "semibold")
@@ -532,54 +527,27 @@ export default async function (ctx) {
       ]);
     }
 
-    // 中、大尺寸共用的上半部分：左 节点+系统，右 本月出站+今日
-    const nodeCompact = S("节点", [
-      R("VLESS", vless ? `正常 · ${vlessTime}` : "异常", vless ? C.green : C.red),
-      R("HY2", hy2ok ? `正常 · ${hy2Time}` : "异常", hy2ok ? C.green : C.red),
-      R("CPU / 内存", `${Number.isFinite(cpu) ? cpu.toFixed(1) : "--"}% · ${pctText(ram.percent)}`),
-      R("出口延迟", latency)
-    ]);
-
-    const quotaCompact = S("本月出站", [
-      ROW([
-        T(shortBytes(monthTx), "subheadline", C.white, "bold"),
-        SP(),
-        T(`${usedPercent.toFixed(1)}% / ${shortBytes(MONTHLY_LIMIT)}`, "caption2", C.gray)
-      ]),
-      BAR(usedPercent, quotaColor),
-      R("剩余", shortBytes(remaining), quotaColor),
-      R("今日", `↑${shortBytes(todayTx)} ↓${shortBytes(todayRx)}`)
-    ]);
-
-    const top = TWO(nodeCompact, quotaCompact);
-
-    // 大尺寸：下半部分全部给在线 IP
-    if (large) {
+    // 中尺寸：系统 + 节点（和「状态」视图中尺寸相同）
+    if (!large) {
+      const nodeWithOnline = S("节点", [
+        R("VLESS", vless ? `正常 · ${vlessTime}` : "异常", vless ? C.green : C.red),
+        R("HY2", hy2ok ? `正常 · ${hy2Time}` : "异常", hy2ok ? C.green : C.red),
+        R("在线 IP", ipCount, warns.length ? C.orange : C.white),
+        R("出口延迟", latency)
+      ]);
       return widget([
         header(TITLE, statusText, statusColor),
-        top,
-        ipBlock(ipRowsFor(Math.max(3, 6 - warns.length)), true),
-        SP(),
-        footer
+        TWO(systemBlock, nodeWithOnline)
       ]);
     }
 
-    // 中尺寸：底部一行在线 IP 摘要
-    const first = knownIps[0];
-    const onlineLine = ROW([
-      T("在线 IP", "caption1", C.gray),
-      SP(6),
-      T(ipCount, "caption1", warns.length ? C.orange : C.white, "semibold"),
-      SP(),
-      warns.length
-        ? T("⚠ 可能被分享", "caption2", C.orange, "semibold")
-        : T(first ? `${first.ip} · ${first.geo_short || "未知"}` : (o ? "无在线用户" : "读取失败"), "caption2", C.gray)
-    ]);
-
+    // 大尺寸：流量 + 在线 IP（不重复中尺寸的系统、节点信息）
     return widget([
       header(TITLE, statusText, statusColor),
-      top,
-      onlineLine
+      TWO(todayBlock, quotaBlock),
+      ipBlock(ipRowsFor(Math.max(3, 7 - warns.length)), true),
+      SP(),
+      footer
     ]);
 
   } catch (e) {
