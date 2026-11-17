@@ -108,11 +108,14 @@ export default async function (ctx) {
   });
 
   // 一行：左标签 + 右数值
-  // 横向撑满用 flex 文本，不用 spacer（spacer 会把多余的竖向空间也吃掉，行距被拉大）
+  // 每行固定高度：Egern 的 spacer / flex 会同时吃掉竖向多余空间，
+  // 不固定行高的话行距会被拉大、字会被挤小
+  const LINE = 16;
   const R = (label, value, color = C.white) => ROW([
-    T(label, "caption1", C.gray, "medium", { flex: 1 }),
+    T(label, "caption1", C.gray),
+    SP(),
     T(value, "caption1", color, "semibold")
-  ]);
+  ], { height: LINE });
 
   // 区块：灰色小标题 + 内容
   const S = (title, items, extra = {}) => COL([
@@ -126,10 +129,7 @@ export default async function (ctx) {
     direction: "row",
     alignItems: "start",
     gap,
-    children: [
-      { ...left, flex: 1 },
-      { ...right, flex: 1 }
-    ]
+    children: [left, right]
   });
 
   // 进度条
@@ -157,9 +157,10 @@ export default async function (ctx) {
   });
 
   const header = (title, right, rightColor = C.gray) => ROW([
-    T(title, "headline", C.white, "bold", { flex: 1 }),
+    T(title, "headline", C.white, "bold"),
+    SP(),
     T(right, "caption1", rightColor, "bold")
-  ]);
+  ], { height: 22 });
 
   const error = message => widget([
     T(TITLE, "headline", C.white, "bold"),
@@ -383,9 +384,10 @@ export default async function (ctx) {
 
     const quotaBlock = S("本月出站", [
       ROW([
-        T(shortBytes(monthTx), "subheadline", C.white, "bold", { flex: 1 }),
+        T(shortBytes(monthTx), "subheadline", C.white, "bold"),
+        SP(),
         T(`${usedPercent.toFixed(1)}% / ${shortBytes(MONTHLY_LIMIT)}`, "caption2", C.gray)
-      ]),
+      ], { height: 20 }),
       BAR(usedPercent, quotaColor),
       R("剩余", shortBytes(remaining), quotaColor)
     ]);
@@ -403,15 +405,17 @@ export default async function (ctx) {
     // 在线 IP 行：wide=一行显示，否则两行
     const ipRow = (x, wide) => wide
       ? ROW([
-          T(x.ip, "caption1", C.white, "semibold", { flex: 1 }),
+          T(x.ip, "caption1", C.white, "semibold"),
+          SP(),
           T(x.label || "", "caption2", C.blue, "semibold"),
           T(x.geo_short || "未知", "caption2", C.gray)
-        ], { gap: 8 })
+        ], { gap: 8, height: LINE })
       : COL([
           ROW([
-            T(x.ip, "caption1", C.white, "semibold", { flex: 1 }),
+            T(x.ip, "caption1", C.white, "semibold"),
+            SP(),
             T(x.geo_short || "未知", "caption2", C.gray)
-          ]),
+          ], { height: LINE }),
           T(x.label || "", "caption2", C.blue, "semibold")
         ], 1);
 
