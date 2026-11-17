@@ -546,10 +546,27 @@ export default async function (ctx) {
     }
 
     // 大尺寸：流量 + 在线 IP（不重复中尺寸的系统、节点信息）
+    // 在线 IP 区约有 9 行空间（实测 2 个 IP 时下方还空约 7.5 行）；
+    // IP 少时用「全网卡累计」「最近异常」补空，IP 多了自动让位
+    const IP_BUDGET = 9;
+    const ipLines = ipItems(ipRowsFor(Math.max(3, IP_BUDGET - 1 - warns.length)), true);
+    const free = IP_BUDGET - ipLines.length;
+    const extra = [];
+
+    if (free >= 5) {
+      extra.push(TWO(totalBlock, eventBlock));
+    } else if (free >= 3) {
+      extra.push(COL([
+        R("累计 ↑ / ↓", `${shortBytes(totalTx)} / ${shortBytes(totalRx)}`),
+        R("最近异常", eventText || "暂无", eventText ? C.orange : C.gray)
+      ], 3));
+    }
+
     return widget([
       header(TITLE, statusText, statusColor),
       TWO(todayBlock, quotaBlock),
-      ipBlock(ipRowsFor(Math.max(3, 7 - warns.length)), true),
+      S(`在线 IP（${o ? knownIps.length : "--"}）`, ipLines),
+      ...extra,
       SP(),
       footer
     ]);
