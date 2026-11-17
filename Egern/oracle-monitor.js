@@ -332,11 +332,17 @@ export default async function (ctx) {
       ? Number(m.latency_ms).toFixed(2) + " ms"
       : "--";
 
-    // 在线 IP：未识别的 VLESS 连接（多为扫描）只计数
+    // 在线 IP：未认证的 VLESS 连接（扫描/蹭用）服务端只给计数 unknown；
+    // 数量异常时服务端给出 alert（蹭用告警）
     const ipList = o && Array.isArray(o.ips) ? o.ips : [];
     const knownIps = ipList.filter(x => !/^(未识别|\?)·/.test(String(x.label || "")));
-    const unknownIps = ipList.length - knownIps.length;
+    const unknownIps = o && Number.isFinite(Number(o.unknown))
+      ? Number(o.unknown)
+      : ipList.length - knownIps.length;
     const warns = o && Array.isArray(o.warn) ? o.warn : [];
+    const alertMsg = o && o.alert ? String(o.alert) : "";
+    const flagged = warns.length > 0 || !!alertMsg;
+    const ipColor = alertMsg ? C.red : warns.length ? C.orange : C.white;
     const ipCount = o ? `${knownIps.length} 个` : "--";
 
     // 最近异常
@@ -421,6 +427,7 @@ export default async function (ctx) {
 
     const ipItems = (rows, wide) => {
       const items = [];
+      if (alertMsg) items.push(T(`⚠ ${alertMsg}`, "caption2", C.red, "semibold"));
       warns.forEach(w => items.push(T(`⚠ ${w}，可能被分享`, "caption2", C.orange, "semibold")));
       if (!o) {
         items.push(T("在线 IP 读取失败", "caption2", C.gray));
@@ -430,7 +437,7 @@ export default async function (ctx) {
       knownIps.slice(0, rows).forEach(x => items.push(ipRow(x, wide)));
       const more = [];
       if (knownIps.length > rows) more.push(`另有 ${knownIps.length - rows} 个 IP`);
-      if (unknownIps > 0) more.push(`${unknownIps} 个未识别连接`);
+      if (unknownIps > 0) more.push(`${unknownIps} 个未认证连接`);
       if (more.length) items.push(T(more.join(" · "), "caption2", C.dim));
       return items;
     };
@@ -451,7 +458,7 @@ export default async function (ctx) {
             R("内存", pctText(ram.percent)),
             R("VLESS", vless ? "正常" : "异常", vless ? C.green : C.red),
             R("HY2", hy2ok ? "正常" : "异常", hy2ok ? C.green : C.red),
-            R("在线 IP", ipCount),
+            R("在线 IP", ipCount, ipColor),
             R("延迟", latency)
           ], 3)
         ]);
@@ -502,8 +509,8 @@ export default async function (ctx) {
     // 在线 IP
     if (VIEW === "ips" || VIEW === "ip") {
       const title = `在线 IP · ${o ? knownIps.length : "--"}`;
-      const right = warns.length ? "⚠ 注意" : clock();
-      const rightColor = warns.length ? C.orange : C.gray;
+      const right = flagged ? "⚠ 注意" : clock();
+      const rightColor = alertMsg ? C.red : warns.length ? C.orange : C.gray;
       if (small) {
         return widget([
           header(title, ""),
@@ -526,7 +533,7 @@ export default async function (ctx) {
           R("CPU / RAM", `${Number.isFinite(cpu) ? cpu.toFixed(1) : "--"}% / ${pctText(ram.percent)}`),
           R("今日", shortBytes(todayTotal)),
           R("本月剩余", shortBytes(remaining), quotaColor),
-          R("在线 IP", ipCount)
+          R("在线 IP", ipCount, ipColor)
         ], 3)
       ]);
     }
@@ -536,7 +543,7 @@ export default async function (ctx) {
       const nodeWithOnline = S("节点", [
         R("VLESS", vless ? `正常 · ${vlessTime}` : "异常", vless ? C.green : C.red),
         R("HY2", hy2ok ? `正常 · ${hy2Time}` : "异常", hy2ok ? C.green : C.red),
-        R("在线 IP", ipCount, warns.length ? C.orange : C.white),
+        R("在线 IP", ipCount, ipColor),
         R("出口延迟", latency)
       ]);
       return widget([
@@ -549,7 +556,7 @@ export default async function (ctx) {
     // 在线 IP 区约有 9 行空间（实测 2 个 IP 时下方还空约 7.5 行）；
     // IP 少时用「全网卡累计」「最近异常」补空，IP 多了自动让位
     const IP_BUDGET = 9;
-    const ipLines = ipItems(ipRowsFor(Math.max(3, IP_BUDGET - 1 - warns.length)), true);
+    const ipLines = ipItems(ipRowsFor(Math.max(3, IP_BUDGET - 1 - warns.length - (alertMsg ? 1 : 0))), true);
     const free = IP_BUDGET - ipLines.length;
     const extra = [];
 
