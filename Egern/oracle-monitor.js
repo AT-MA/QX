@@ -11,6 +11,7 @@
 //   TITLE         默认 🇯🇵 TOKYO VPS
 //   MONTHLY_TB    本月出站额度（TB），默认 10
 //   REFRESH       刷新间隔（秒），默认 60
+//   IP_ROWS       在线 IP 最多显示几条，默认 3
 
 export default async function (ctx) {
   const env = ctx.env || {};
@@ -28,6 +29,7 @@ export default async function (ctx) {
   const PORT = num(env.SSH_PORT, 22);
   const REFRESH = num(env.REFRESH, 60);
   const MONTHLY_LIMIT = num(env.MONTHLY_TB, 10) * 1e12;
+  const IP_ROWS = Math.floor(num(env.IP_ROWS, 3));
   let ssh = null;
 
   // 流量格式
@@ -126,7 +128,8 @@ export default async function (ctx) {
 
     ssh = await ctx.ssh.connect(config);
 
-    // 只读获取系统、节点和全网卡数据
+    // 只读获取系统、节点、全网卡和在线 IP 数据
+    // 在线 IP 读不到时输出 null，不影响其他数据
     const cmd = `
       set -e
       export LC_ALL=C
@@ -137,6 +140,10 @@ export default async function (ctx) {
 
       echo '===T==='
       curl -fsS --max-time 4 http://127.0.0.1:8765/api/net-total
+      echo
+
+      echo '===O==='
+      curl -fsS --max-time 8 http://127.0.0.1:8765/internal/online-ips || echo null
       echo
 
       echo '===D==='
@@ -151,7 +158,7 @@ export default async function (ctx) {
 
     // 解析返回数据
     const out = String(result.stdout || "");
-    const marks = ["===M===", "===T===", "===D==="];
+    const marks = ["===M===", "===T===", "===O===", "===D==="];
     const pos = marks.map(x => out.indexOf(x));
 
     if (pos.some(x => x < 0)) {
@@ -161,13 +168,19 @@ export default async function (ctx) {
     const data = pos.map((p, i) =>
       out.slice(
         p + marks[i].length,
-        i < 2 ? pos[i + 1] : out.length
+        i < marks.length - 1 ? pos[i + 1] : out.length
       ).trim()
     );
 
     const m = JSON.parse(data[0]);
     const t = JSON.parse(data[1]);
-    const date = data[2];
+    let o = null;
+    try {
+      o = JSON.parse(data[2]);
+    } catch (_) {
+      o = null;
+    }
+    const date = data[3];
 
     if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
       throw new Error("服务器日期格式异常");
@@ -331,6 +344,51 @@ export default async function (ctx) {
       )
     ]);
 
+    // 在线 IP：同一 IP 多个节点合并为一条；未识别的 VLESS 连接（多为扫描）只计数
+    const ipList = o && Array.isArray(o.ips) ? o.ips : [];
+    const knownIps = ipList.filter(
+      x => !/^(未识别|\?)·/.test(String(x.label || ""))
+    );
+    const unknownIps = ipList.length - knownIps.length;
+
+    const ipItems = [];
+
+    (o && Array.isArray(o.warn) ? o.warn : []).forEach(w => {
+      ipItems.push(T(`⚠ ${w}，可能被分享`, "caption2", "#FF9F0A", "semibold"));
+    });
+
+    if (!o) {
+      ipItems.push(T("在线 IP 读取失败", "caption2", "#999999"));
+    } else if (!knownIps.length) {
+      ipItems.push(T("当前没有在线用户", "caption2", "#999999"));
+    }
+
+    knownIps.slice(0, IP_ROWS).forEach(x => {
+      ipItems.push({
+        type: "stack",
+        direction: "row",
+        children: [
+          T(x.ip, "caption1", "#FFFFFF", "semibold"),
+          { type: "spacer" },
+          T(x.geo_short || "归属地未知", "caption2", "#999999")
+        ]
+      });
+      ipItems.push(T(x.label || "", "caption2", "#0A84FF"));
+    });
+
+    if (knownIps.length > IP_ROWS) {
+      ipItems.push(T(`另有 ${knownIps.length - IP_ROWS} 个 IP`, "caption2", "#999999"));
+    }
+
+    if (unknownIps > 0) {
+      ipItems.push(T(`另有 ${unknownIps} 个未识别 VLESS 连接`, "caption2", "#666666"));
+    }
+
+    const ipBlock = S(
+      o ? `在线 IP（${knownIps.length}）` : "在线 IP",
+      ipItems
+    );
+
     // 今日总用量
     const today = S("今日总用量", [
       R("↑ 上传", shortBytes(todayTx), "#30D158"),
@@ -413,6 +471,11 @@ export default async function (ctx) {
           "本月剩余",
           shortBytes(remaining),
           "#30D158"
+        ),
+        R(
+          "在线 IP",
+          o ? `${knownIps.length} 个` : "--",
+          o && o.warn && o.warn.length ? "#FF9F0A" : "#FFFFFF"
         )
       ]);
     }
@@ -425,7 +488,8 @@ export default async function (ctx) {
         gap: 8,
         children: [
           system,
-          nodesBlock
+          nodesBlock,
+          ipBlock
         ]
       };
 
@@ -470,6 +534,7 @@ export default async function (ctx) {
       header,
       system,
       nodesBlock,
+      ipBlock,
       today,
       total,
       quota,
