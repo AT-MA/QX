@@ -1,5 +1,5 @@
 name: 甲骨文 VPS 监控
-description: 通过 SSH 读取 VPS 监控数据的小组件。请在模块编辑页的 Env 里填写 HOST，以及 SSH_KEY 或 SSH_PASSWORD（可选 SSH_USER、SSH_PORT、TITLE、MONTHLY_TB、REFRESH）
+description: 通过 SSH 读取 VPS 监控数据的小组件。请在模块编辑页的 Env 里填写 HOST，以及 SSH_KEY 或 SSH_PASSWORD（可选 SSH_USER、SSH_PORT、TITLE、MONTHLY_TB、REFRESH、IP_ROWS）。提供 4 个小组件：全部 / 状态 / 流量 / 在线 IP
 
 scriptings:
 - generic:
@@ -9,3 +9,15 @@ scriptings:
 
 widgets:
 - name: oracle-vps-monitor
+- name: 甲骨文 · 状态
+  script_name: oracle-vps-monitor
+  env:
+    VIEW: status
+- name: 甲骨文 · 流量
+  script_name: oracle-vps-monitor
+  env:
+    VIEW: traffic
+- name: 甲骨文 · 在线 IP
+  script_name: oracle-vps-monitor
+  env:
+    VIEW: ips

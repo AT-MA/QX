@@ -6,12 +6,13 @@
 //   SSH_KEY       私钥（可用 \n 表示换行），或者
 //   SSH_PASSWORD  密码（没填 SSH_KEY 时使用）
 // 可选 env：
+//   VIEW          显示内容：all（默认，全部）/ status（系统+节点）/ traffic（流量）/ ips（在线 IP）
 //   SSH_USER      默认 egernmon
 //   SSH_PORT      默认 22
 //   TITLE         默认 🇯🇵 TOKYO VPS
 //   MONTHLY_TB    本月出站额度（TB），默认 10
 //   REFRESH       刷新间隔（秒），默认 60
-//   IP_ROWS       在线 IP 最多显示几条，默认 3
+//   IP_ROWS       在线 IP 最多显示几条（不填按尺寸自动）
 
 export default async function (ctx) {
   const env = ctx.env || {};
@@ -24,13 +25,25 @@ export default async function (ctx) {
     return v !== undefined && v !== null && v !== "" && Number.isFinite(n) && n > 0 ? n : d;
   };
 
+  const VIEW = String(env.VIEW || "all").toLowerCase();
   const TITLE = env.TITLE || "🇯🇵 TOKYO VPS";
   const USER = env.SSH_USER || "egernmon";
   const PORT = num(env.SSH_PORT, 22);
   const REFRESH = num(env.REFRESH, 60);
   const MONTHLY_LIMIT = num(env.MONTHLY_TB, 10) * 1e12;
-  const IP_ROWS = Math.floor(num(env.IP_ROWS, 3));
   let ssh = null;
+
+  // 颜色
+  const C = {
+    white: "#FFFFFF",
+    gray: "#8E8E93",
+    dim: "#636366",
+    green: "#30D158",
+    blue: "#0A84FF",
+    orange: "#FF9F0A",
+    red: "#FF453A",
+    track: "#3A3A3C"
+  };
 
   // 流量格式
   const shortBytes = n => {
@@ -58,53 +71,101 @@ export default async function (ctx) {
     return d ? `${d}天${h}时` : h ? `${h}小时${m}分` : `${m}分`;
   };
 
-  // UI 文本
-  const T = (
-    value,
-    size = "caption1",
-    color = "#FFFFFF",
-    weight = "medium"
-  ) => ({
+  const clock = () => new Date().toLocaleTimeString("zh-CN", {
+    hour12: false,
+    hour: "2-digit",
+    minute: "2-digit"
+  });
+
+  // ---------- UI 基础元素 ----------
+  const T = (value, size = "caption1", color = C.white, weight = "medium", extra = {}) => ({
     type: "text",
     text: String(value),
     font: { size, weight },
-    textColor: color
+    textColor: color,
+    maxLines: 1,
+    minScale: 0.6,
+    ...extra
   });
 
-  const R = (label, value, color = "#FFFFFF") => ({
+  const SP = length => length ? { type: "spacer", length } : { type: "spacer" };
+
+  const ROW = (children, extra = {}) => ({
     type: "stack",
     direction: "row",
+    alignItems: "center",
+    children,
+    ...extra
+  });
+
+  const COL = (children, gap = 3, extra = {}) => ({
+    type: "stack",
+    direction: "column",
+    alignItems: "start",
+    gap,
+    children,
+    ...extra
+  });
+
+  // 一行：左标签 + 右数值
+  const R = (label, value, color = C.white) => ROW([
+    T(label, "caption1", C.gray),
+    SP(),
+    T(value, "caption1", color, "semibold")
+  ]);
+
+  // 区块：灰色小标题 + 内容
+  const S = (title, items, extra = {}) => COL([
+    T(title, "footnote", C.gray, "bold"),
+    ...items
+  ], 3, extra);
+
+  // 并排两列
+  const TWO = (left, right, gap = 12) => ({
+    type: "stack",
+    direction: "row",
+    alignItems: "start",
+    gap,
     children: [
-      T(label, "caption1", "#999999"),
-      { type: "spacer" },
-      T(value, "caption1", color, "semibold")
+      { ...left, flex: 1 },
+      { ...right, flex: 1 }
     ]
   });
 
-  const S = (title, items) => ({
-    type: "stack",
-    direction: "column",
-    gap: 3,
-    children: [
-      T(title, "subheadline", "#FFFFFF", "bold"),
-      ...items
-    ]
-  });
+  // 进度条
+  const BAR = (pct, color) => {
+    const p = Math.max(2, Math.min(100, pct));
+    return {
+      type: "stack",
+      direction: "row",
+      height: 6,
+      borderRadius: 3,
+      backgroundColor: C.track,
+      children: [
+        { type: "stack", flex: p, height: 6, borderRadius: 3, backgroundColor: color, children: [] },
+        { type: "stack", flex: 100 - p, height: 6, children: [] }
+      ]
+    };
+  };
 
   const widget = children => ({
     type: "widget",
-    padding: 12,
-    gap: 6,
-    refreshAfter: new Date(
-      Date.now() + REFRESH * 1000
-    ).toISOString(),
+    padding: 14,
+    gap: 8,
+    refreshAfter: new Date(Date.now() + REFRESH * 1000).toISOString(),
     children
   });
 
+  const header = (title, right, rightColor = C.gray) => ROW([
+    T(title, "headline", C.white, "bold"),
+    SP(),
+    T(right, "caption1", rightColor, "bold")
+  ]);
+
   const error = message => widget([
-    T(TITLE, "headline", "#FFFFFF", "bold"),
-    T("监控读取失败", "headline", "#FF453A", "bold"),
-    T(message, "caption1", "#AAAAAA")
+    T(TITLE, "headline", C.white, "bold"),
+    T("监控读取失败", "headline", C.red, "bold"),
+    T(message, "caption1", "#AAAAAA", "medium", { maxLines: 4 })
   ]);
 
   try {
@@ -234,15 +295,9 @@ export default async function (ctx) {
     }
 
     // 本月出站额度
-    const remaining = Math.max(
-      0,
-      MONTHLY_LIMIT - monthTx
-    );
-
-    const usedPercent = Math.min(
-      100,
-      monthTx / MONTHLY_LIMIT * 100
-    );
+    const remaining = Math.max(0, MONTHLY_LIMIT - monthTx);
+    const usedPercent = Math.min(100, monthTx / MONTHLY_LIMIT * 100);
+    const quotaColor = usedPercent >= 90 ? C.red : usedPercent >= 70 ? C.orange : C.green;
 
     // 关闭 SSH
     await ssh.close();
@@ -251,13 +306,13 @@ export default async function (ctx) {
     // 小组件尺寸
     const family = (ctx.widgetFamily || "").toLowerCase();
     const small = family.includes("small");
-    const large = family.includes("large") ||
-                  family.includes("extralarge");
+    const large = family.includes("large");
 
     // 系统数据
     const cpu = Number(m.cpu_percent);
     const ram = m.memory || {};
     const disk = m.disk || {};
+    const pctText = v => Number.isFinite(Number(v)) ? Number(v) + "%" : "--";
 
     // 节点数据
     const nodes = m.node_health || {};
@@ -268,157 +323,25 @@ export default async function (ctx) {
     const vless = nodes.vless_tcp === true;
     const hy2ok = nodes.hy2 === true;
     const allOK = vless && hy2ok;
+    const statusText = allOK ? "● 正常" : "● 异常";
+    const statusColor = allOK ? C.green : C.red;
 
-    const statusColor = allOK
-      ? "#30D158"
-      : "#FF453A";
+    const vlessTime = compactDuration(nodeUptime["VLESS Reality"]?.uptime);
+    const hy2Time = compactDuration(nodeUptime["Hysteria 2"]?.uptime);
+    const latency = Number.isFinite(Number(m.latency_ms)) && m.latency_ms !== null
+      ? Number(m.latency_ms).toFixed(2) + " ms"
+      : "--";
 
-    const vlessTime = compactDuration(
-      nodeUptime["VLESS Reality"]?.uptime
-    );
-
-    const hy2Time = compactDuration(
-      nodeUptime["Hysteria 2"]?.uptime
-    );
-
-    // 顶部状态
-    const header = {
-      type: "stack",
-      direction: "row",
-      children: [
-        T(TITLE, "headline", "#FFFFFF", "bold"),
-        { type: "spacer" },
-        T(
-          allOK ? "● 正常" : "● 异常",
-          "subheadline",
-          statusColor,
-          "bold"
-        )
-      ]
-    };
-
-    // 系统
-    const system = S("系统", [
-      R(
-        "CPU",
-        Number.isFinite(cpu) ? cpu.toFixed(1) + "%" : "--"
-      ),
-      R(
-        "内存",
-        `${shortBytes(ram.used)} · ${Number.isFinite(Number(ram.percent)) ? ram.percent + "%" : "--"}`
-      ),
-      R(
-        "磁盘",
-        `${shortBytes(disk.used)} · ${Number.isFinite(Number(disk.percent)) ? disk.percent + "%" : "--"}`
-      ),
-      R("运行时间", compactDuration(m.uptime))
-    ]);
-
-    // 节点状态：保留健康检测，不统计节点流量
-    const nodesBlock = S("节点状态", [
-      R(
-        "VLESS",
-        vless ? "正常" : "异常",
-        vless ? "#30D158" : "#FF453A"
-      ),
-      R("VLESS 正常", vlessTime),
-      R(
-        "HY2",
-        hy2ok ? "正常" : "异常",
-        hy2ok ? "#30D158" : "#FF453A"
-      ),
-      R("HY2 正常", hy2Time),
-      R(
-        "HY2 在线",
-        online.available
-          ? `${online.connections} 个`
-          : "--"
-      ),
-      R(
-        "出口延迟",
-        m.latency_ms !== undefined &&
-        m.latency_ms !== null &&
-        Number.isFinite(Number(m.latency_ms))
-          ? Number(m.latency_ms).toFixed(2) + " ms"
-          : "--"
-      )
-    ]);
-
-    // 在线 IP：同一 IP 多个节点合并为一条；未识别的 VLESS 连接（多为扫描）只计数
+    // 在线 IP：未识别的 VLESS 连接（多为扫描）只计数
     const ipList = o && Array.isArray(o.ips) ? o.ips : [];
-    const knownIps = ipList.filter(
-      x => !/^(未识别|\?)·/.test(String(x.label || ""))
-    );
+    const knownIps = ipList.filter(x => !/^(未识别|\?)·/.test(String(x.label || "")));
     const unknownIps = ipList.length - knownIps.length;
+    const warns = o && Array.isArray(o.warn) ? o.warn : [];
+    const ipCount = o ? `${knownIps.length} 个` : "--";
 
-    const ipItems = [];
-
-    (o && Array.isArray(o.warn) ? o.warn : []).forEach(w => {
-      ipItems.push(T(`⚠ ${w}，可能被分享`, "caption2", "#FF9F0A", "semibold"));
-    });
-
-    if (!o) {
-      ipItems.push(T("在线 IP 读取失败", "caption2", "#999999"));
-    } else if (!knownIps.length) {
-      ipItems.push(T("当前没有在线用户", "caption2", "#999999"));
-    }
-
-    knownIps.slice(0, IP_ROWS).forEach(x => {
-      ipItems.push({
-        type: "stack",
-        direction: "row",
-        children: [
-          T(x.ip, "caption1", "#FFFFFF", "semibold"),
-          { type: "spacer" },
-          T(x.geo_short || "归属地未知", "caption2", "#999999")
-        ]
-      });
-      ipItems.push(T(x.label || "", "caption2", "#0A84FF"));
-    });
-
-    if (knownIps.length > IP_ROWS) {
-      ipItems.push(T(`另有 ${knownIps.length - IP_ROWS} 个 IP`, "caption2", "#999999"));
-    }
-
-    if (unknownIps > 0) {
-      ipItems.push(T(`另有 ${unknownIps} 个未识别 VLESS 连接`, "caption2", "#666666"));
-    }
-
-    const ipBlock = S(
-      o ? `在线 IP（${knownIps.length}）` : "在线 IP",
-      ipItems
-    );
-
-    // 今日总用量
-    const today = S("今日总用量", [
-      R("↑ 上传", shortBytes(todayTx), "#30D158"),
-      R("↓ 下载", shortBytes(todayRx), "#0A84FF"),
-      R("合计", shortBytes(todayTotal), "#FFFFFF")
-    ]);
-
-    // 全网卡历史累计
-    const total = S("全网卡累计", [
-      R("↑ TX", shortBytes(totalTx), "#30D158"),
-      R("↓ RX", shortBytes(totalRx), "#0A84FF"),
-      R("合计", shortBytes(totalTraffic), "#FFFFFF")
-    ]);
-
-    // 本月出站额度
-    const quota = S("本月出站额度", [
-      R("已用", shortBytes(monthTx)),
-      R("剩余", shortBytes(remaining), "#30D158"),
-      R("使用率", usedPercent.toFixed(1) + "%")
-    ]);
-
-    // 最近异常记录
-    const events = Array.isArray(history.events)
-      ? history.events
-      : [];
-
-    const lastEvent = events.length
-      ? events[events.length - 1]
-      : null;
-
+    // 最近异常
+    const events = Array.isArray(history.events) ? history.events : [];
+    const lastEvent = events.length ? events[events.length - 1] : null;
     let eventText = "";
 
     if (lastEvent) {
@@ -438,107 +361,192 @@ export default async function (ctx) {
       }
     }
 
-    const historyBlock = S("最近异常", [
-      T(
-        eventText || "暂无异常记录",
-        "caption2",
-        eventText ? "#FF9F0A" : "#999999"
-      )
+    // ---------- 区块 ----------
+    const systemBlock = S("系统", [
+      R("CPU", Number.isFinite(cpu) ? cpu.toFixed(1) + "%" : "--"),
+      R("内存", `${shortBytes(ram.used)} · ${pctText(ram.percent)}`),
+      R("磁盘", `${shortBytes(disk.used)} · ${pctText(disk.percent)}`),
+      R("运行", compactDuration(m.uptime))
     ]);
 
-    // 小尺寸
+    const nodeBlock = S("节点", [
+      R("VLESS", vless ? `正常 · ${vlessTime}` : "异常", vless ? C.green : C.red),
+      R("HY2", hy2ok ? `正常 · ${hy2Time}` : "异常", hy2ok ? C.green : C.red),
+      R("HY2 连接", online.available ? `${online.connections} 个` : "--"),
+      R("出口延迟", latency)
+    ]);
+
+    const todayBlock = S("今日", [
+      R("↑ 上传", shortBytes(todayTx), C.green),
+      R("↓ 下载", shortBytes(todayRx), C.blue),
+      R("合计", shortBytes(todayTotal))
+    ]);
+
+    const quotaBlock = S("本月出站", [
+      ROW([
+        T(shortBytes(monthTx), "subheadline", C.white, "bold"),
+        SP(),
+        T(`${usedPercent.toFixed(1)}% / ${shortBytes(MONTHLY_LIMIT)}`, "caption2", C.gray)
+      ]),
+      BAR(usedPercent, quotaColor),
+      R("剩余", shortBytes(remaining), quotaColor)
+    ]);
+
+    const totalBlock = S("全网卡累计", [
+      R("↑ TX", shortBytes(totalTx), C.green),
+      R("↓ RX", shortBytes(totalRx), C.blue),
+      R("合计", shortBytes(totalTraffic))
+    ]);
+
+    const eventBlock = S("最近异常", [
+      T(eventText || "暂无异常记录", "caption2", eventText ? C.orange : C.gray, "medium", { maxLines: 2 })
+    ]);
+
+    // 在线 IP 行：wide=一行显示，否则两行
+    const ipRow = (x, wide) => wide
+      ? ROW([
+          T(x.ip, "caption1", C.white, "semibold"),
+          SP(),
+          T(x.label || "", "caption2", C.blue, "semibold"),
+          SP(8),
+          T(x.geo_short || "未知", "caption2", C.gray)
+        ])
+      : COL([
+          ROW([
+            T(x.ip, "caption1", C.white, "semibold"),
+            SP(),
+            T(x.geo_short || "未知", "caption2", C.gray)
+          ]),
+          T(x.label || "", "caption2", C.blue, "semibold")
+        ], 1);
+
+    const ipItems = (rows, wide) => {
+      const items = [];
+      warns.forEach(w => items.push(T(`⚠ ${w}，可能被分享`, "caption2", C.orange, "semibold")));
+      if (!o) {
+        items.push(T("在线 IP 读取失败", "caption2", C.gray));
+      } else if (!knownIps.length) {
+        items.push(T("当前没有在线用户", "caption2", C.gray));
+      }
+      knownIps.slice(0, rows).forEach(x => items.push(ipRow(x, wide)));
+      const more = [];
+      if (knownIps.length > rows) more.push(`另有 ${knownIps.length - rows} 个 IP`);
+      if (unknownIps > 0) more.push(`${unknownIps} 个未识别连接`);
+      if (more.length) items.push(T(more.join(" · "), "caption2", C.dim));
+      return items;
+    };
+
+    const ipRowsFor = def => Math.floor(num(env.IP_ROWS, def));
+    const ipBlock = (rows, wide) => S(`在线 IP（${o ? knownIps.length : "--"}）`, ipItems(rows, wide));
+
+    const footer = T(`更新于 ${clock()} · 每 ${REFRESH} 秒`, "caption2", C.dim);
+
+    // ---------- 视图 ----------
+    // 状态：系统 + 节点（+ 在线 IP）
+    if (VIEW === "status") {
+      if (small) {
+        return widget([
+          header("TOKYO", statusText, statusColor),
+          COL([
+            R("CPU", Number.isFinite(cpu) ? cpu.toFixed(1) + "%" : "--"),
+            R("内存", pctText(ram.percent)),
+            R("VLESS", vless ? "正常" : "异常", vless ? C.green : C.red),
+            R("HY2", hy2ok ? "正常" : "异常", hy2ok ? C.green : C.red),
+            R("在线 IP", ipCount),
+            R("延迟", latency)
+          ], 3)
+        ]);
+      }
+      const top = TWO(systemBlock, nodeBlock);
+      if (large) {
+        return widget([
+          header(TITLE, statusText, statusColor),
+          top,
+          ipBlock(ipRowsFor(4), true),
+          SP(),
+          footer
+        ]);
+      }
+      return widget([header(TITLE, statusText, statusColor), top]);
+    }
+
+    // 流量：今日 + 本月额度 + 累计
+    if (VIEW === "traffic") {
+      if (small) {
+        return widget([
+          header("流量", clock()),
+          COL([
+            R("今日", shortBytes(todayTotal)),
+            R("本月出站", shortBytes(monthTx)),
+            BAR(usedPercent, quotaColor),
+            R("剩余", shortBytes(remaining), quotaColor),
+            R("累计", shortBytes(totalTraffic))
+          ], 4)
+        ]);
+      }
+      if (large) {
+        return widget([
+          header(`${TITLE} · 流量`, clock()),
+          quotaBlock,
+          TWO(todayBlock, totalBlock),
+          eventBlock,
+          SP(),
+          footer
+        ]);
+      }
+      return widget([
+        header("流量", clock()),
+        TWO(todayBlock, quotaBlock, 14)
+      ]);
+    }
+
+    // 在线 IP
+    if (VIEW === "ips" || VIEW === "ip") {
+      const title = `在线 IP · ${o ? knownIps.length : "--"}`;
+      const right = warns.length ? "⚠ 注意" : clock();
+      const rightColor = warns.length ? C.orange : C.gray;
+      if (small) {
+        return widget([
+          header(title, ""),
+          COL(ipItems(ipRowsFor(2), false), 5)
+        ]);
+      }
+      return widget([
+        header(title, right, rightColor),
+        COL(ipItems(ipRowsFor(large ? 8 : 4), true), large ? 8 : 5),
+        SP()
+      ]);
+    }
+
+    // 全部（默认）
     if (small) {
       return widget([
-        header,
-        R(
-          "VLESS / HY2",
-          allOK ? "正常" : "异常",
-          statusColor
-        ),
-        R(
-          "CPU / RAM",
-          `${Number.isFinite(cpu) ? cpu.toFixed(1) : "--"}% / ${ram.percent ?? "--"}%`
-        ),
-        R(
-          "今日总用量",
-          shortBytes(todayTotal)
-        ),
-        R(
-          "累计流量",
-          shortBytes(totalTraffic)
-        ),
-        R(
-          "本月剩余",
-          shortBytes(remaining),
-          "#30D158"
-        ),
-        R(
-          "在线 IP",
-          o ? `${knownIps.length} 个` : "--",
-          o && o.warn && o.warn.length ? "#FF9F0A" : "#FFFFFF"
-        )
+        header("TOKYO", statusText, statusColor),
+        COL([
+          R("VLESS / HY2", allOK ? "正常" : "异常", statusColor),
+          R("CPU / RAM", `${Number.isFinite(cpu) ? cpu.toFixed(1) : "--"}% / ${pctText(ram.percent)}`),
+          R("今日", shortBytes(todayTotal)),
+          R("本月剩余", shortBytes(remaining), quotaColor),
+          R("在线 IP", ipCount)
+        ], 3)
       ]);
     }
 
-    // 最大尺寸：双列布局
     if (large) {
-      const left = {
-        type: "stack",
-        direction: "column",
-        gap: 8,
-        children: [
-          system,
-          nodesBlock,
-          ipBlock
-        ]
-      };
-
-      // 右侧最终顺序
-      const right = {
-        type: "stack",
-        direction: "column",
-        gap: 8,
-        children: [
-          today,
-          total,
-          quota,
-          historyBlock
-        ]
-      };
-
       return widget([
-        header,
-        {
-          type: "stack",
-          direction: "row",
-          gap: 6,
-          children: [
-            left,
-            right
-          ]
-        },
-        T(
-          `每 ${REFRESH} 秒请求刷新 · ` +
-          new Date().toLocaleTimeString(
-            "zh-CN",
-            { hour12: false }
-          ),
-          "caption2",
-          "#888888"
-        )
+        header(TITLE, statusText, statusColor),
+        TWO(systemBlock, nodeBlock),
+        TWO(todayBlock, quotaBlock),
+        ipBlock(ipRowsFor(3), true),
+        SP(),
+        footer
       ]);
     }
 
-    // 中尺寸
+    // 中尺寸：放不下全部，只放最常看的
     return widget([
-      header,
-      system,
-      nodesBlock,
-      ipBlock,
-      today,
-      total,
-      quota,
-      historyBlock
+      header(TITLE, statusText, statusColor),
+      TWO(nodeBlock, quotaBlock)
     ]);
 
   } catch (e) {
