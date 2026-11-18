@@ -11,3 +11,4 @@
 
 - 不要重命名 `QX` 和 `分流`，它们通过 raw 链接被订阅
 - 我自己维护的分流规则放在 AT-MA/fenliu 仓库
+- 推送到 main 后 Action 会把文件同步到 secret gist（订阅用 gist 链接），不同目录下不要放同名文件
