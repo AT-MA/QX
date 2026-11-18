@@ -28,6 +28,25 @@ https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Quant
 
 自己维护的交易所 / Emby 等分流规则在 [AT-MA/fenliu](https://github.com/AT-MA/fenliu)。
 
+## 同步到 secret gist
+
+仓库设为私密后，raw 链接无法订阅，所以每次推送到 main 时，[同步 Action](.github/workflows/sync-gist.yml) 会把订阅文件同步到一个 secret gist，订阅改用 gist 的链接：
+
+```
+https://gist.githubusercontent.com/AT-MA/<GIST_ID>/raw/<文件名>
+```
+
+首次设置：
+
+1. 在 [gist.github.com](https://gist.github.com) 新建一个 **secret gist**（随便放一个文件，同步时会被清理），地址栏最后一段就是 `GIST_ID`
+2. 新建一个只勾选 `gist` 权限的 token（[classic token](https://github.com/settings/tokens/new?scopes=gist&description=sync-gist)）
+3. 在仓库 Settings → Secrets and variables → Actions 里：
+   - **Secrets** 添加 `GIST_TOKEN` = 上面的 token
+   - **Variables** 添加 `GIST_ID` = gist 的 ID
+4. 到 Actions 页手动运行一次「同步到 gist」，确认 gist 里有文件后再把仓库设为私密
+
+注意：gist 不支持目录，文件按文件名平铺，所以不同目录下不能有同名文件；文件里指向本仓库的 raw 链接会自动改成 gist 链接。
+
 ## Egern 小组件
 
 **甲骨文 VPS 监控**：在 Egern「工具 → 模块」右上角 ＋ 添加模块，地址填：
@@ -36,7 +55,7 @@ https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Quant
 https://raw.githubusercontent.com/AT-MA/QX/main/Egern/oracle-monitor.yaml
 ```
 
-然后在模块编辑页的 **Env** 里填参数（仓库是公开的，密钥只填在 App 里，不要提交到这里）：
+然后在模块编辑页的 **Env** 里填参数（密钥只填在 App 里，不要提交到仓库或 gist）：
 
 | 变量 | 说明 |
 | --- | --- |
